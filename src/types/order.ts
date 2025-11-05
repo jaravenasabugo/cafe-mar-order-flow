@@ -10,6 +10,7 @@ export interface SelectedProduct extends Product {
 }
 
 export interface Order {
+  solicitante: string;
   cafeteria: string;
   proveedor: string;
   productos: SelectedProduct[];

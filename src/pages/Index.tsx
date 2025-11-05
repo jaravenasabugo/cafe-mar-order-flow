@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { CafeteriaSelector } from "@/components/order/CafeteriaSelector";
 import { ProviderSearch } from "@/components/order/ProviderSearch";
@@ -12,6 +14,7 @@ import { Order, SelectedProduct } from "@/types/order";
 const Index = () => {
   const { toast } = useToast();
   const [cafeteria, setCafeteria] = useState("");
+  const [fullName, setFullName] = useState("");
   const [providerId, setProviderId] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const { providers, loading, error } = useProviders();
@@ -41,6 +44,14 @@ const Index = () => {
   };
 
   const handleSubmit = async () => {
+    if (!fullName.trim()) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa tu nombre y apellido",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!cafeteria) {
       toast({
         title: "Error",
@@ -69,6 +80,7 @@ const Index = () => {
     }
 
     const order: Order = {
+      solicitante: fullName.trim(),
       cafeteria,
       proveedor: selectedProvider?.nombre || "",
       productos: selectedProducts,
@@ -106,6 +118,7 @@ const Index = () => {
       });
 
       // Reset form
+      setFullName("");
       setCafeteria("");
       setProviderId("");
       setQuantities({});
@@ -137,6 +150,17 @@ const Index = () => {
 
         {/* Form */}
         <div className="space-y-8">
+          {/* Nombre y Apellido */}
+          <div className="space-y-3 animate-fade-in">
+            <Label className="text-lg font-serif text-foreground">Nombre y apellido</Label>
+            <Input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Escribe tu nombre y apellido"
+              className="h-12 bg-card border-border text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+
           <CafeteriaSelector value={cafeteria} onChange={setCafeteria} />
           
           <ProviderSearch 
