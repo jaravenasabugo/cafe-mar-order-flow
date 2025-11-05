@@ -26,18 +26,18 @@ export const ProductSelector = ({ products, quantities, onQuantityChange, onSele
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="space-y-4">
         <Label className="text-lg font-serif flex items-center gap-2 text-foreground">
           <Coffee className="w-5 h-5 text-primary" />
           Productos Disponibles
         </Label>
         {filtered.length > 0 && (onSelectAll || onDeselectAll) && (
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             {onSelectAll && (
               <Button
                 onClick={onSelectAll}
                 size="sm"
-                className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground w-[250px]"
               >
                 Seleccionar todos los productos
               </Button>
@@ -46,7 +46,7 @@ export const ProductSelector = ({ products, quantities, onQuantityChange, onSele
               <Button
                 onClick={onDeselectAll}
                 size="sm"
-                className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground w-[250px]"
               >
                 Deseleccionar todos
               </Button>
