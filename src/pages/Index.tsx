@@ -1,26 +1,53 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { CafeteriaSelector } from "@/components/order/CafeteriaSelector";
 import { ProviderSearch } from "@/components/order/ProviderSearch";
+import { CategoryFilter } from "@/components/order/CategoryFilter";
 import { ProductSelector } from "@/components/order/ProductSelector";
 import { OrderSummary } from "@/components/order/OrderSummary";
 import { useProviders } from "@/hooks/use-providers";
 import { Order, SelectedProduct } from "@/types/order";
+
+const NOMBRES_DISPONIBLES = [
+  "Dennise",
+  "Renée",
+  "Edward",
+  "Alexis",
+  "Manuel",
+  "Monica",
+  "Diego"
+];
 
 const Index = () => {
   const { toast } = useToast();
   const [cafeteria, setCafeteria] = useState("");
   const [fullName, setFullName] = useState("");
   const [providerId, setProviderId] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [observacion, setObservacion] = useState("");
   const { providers, loading, error } = useProviders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedProvider = providers.find(p => p.id === providerId);
+  
+  // Resetear categoría cuando cambia el proveedor
+  useEffect(() => {
+    setSelectedCategory(null);
+  }, [providerId]);
+  
+  const filteredProducts = useMemo(() => {
+    if (!selectedProvider) return [];
+    if (!selectedCategory) return selectedProvider.productos;
+    return selectedProvider.productos.filter(
+      product => product.categoria?.trim() === selectedCategory
+    );
+  }, [selectedProvider, selectedCategory]);
   
   const selectedProducts: SelectedProduct[] = useMemo(() => {
     if (!selectedProvider) return [];
@@ -45,11 +72,32 @@ const Index = () => {
     }));
   };
 
+  const handleSelectAll = () => {
+    setQuantities(prev => {
+      const updated = { ...prev };
+      filteredProducts.forEach(product => {
+        const currentQuantity = updated[product.nombre] || 0;
+        updated[product.nombre] = currentQuantity + 1;
+      });
+      return updated;
+    });
+  };
+
+  const handleDeselectAll = () => {
+    setQuantities(prev => {
+      const updated = { ...prev };
+      filteredProducts.forEach(product => {
+        updated[product.nombre] = 0;
+      });
+      return updated;
+    });
+  };
+
   const handleSubmit = async () => {
     if (!fullName.trim()) {
       toast({
         title: "Error",
-        description: "Por favor ingresa tu nombre y apellido",
+        description: "Por favor selecciona tu nombre",
         variant: "destructive",
       });
       return;
@@ -89,6 +137,7 @@ const Index = () => {
       total_neto: total,
       iva,
       total_con_iva: totalConIva,
+      observacion: observacion.trim(),
     };
     
     const webhookUrl = import.meta.env.VITE_ORDER_WEBHOOK_URL as string | undefined;
@@ -125,7 +174,9 @@ const Index = () => {
       setFullName("");
       setCafeteria("");
       setProviderId("");
+      setSelectedCategory(null);
       setQuantities({});
+      setObservacion("");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       toast({
@@ -157,12 +208,18 @@ const Index = () => {
           {/* Nombre y Apellido */}
           <div className="space-y-3 animate-fade-in">
             <Label className="text-lg font-serif text-foreground">Nombre y apellido</Label>
-            <Input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Escribe tu nombre y apellido"
-              className="h-12 bg-card border-border text-foreground placeholder:text-muted-foreground"
-            />
+            <Select value={fullName} onValueChange={setFullName}>
+              <SelectTrigger className="h-12 bg-card border-border text-foreground">
+                <SelectValue placeholder="Selecciona tu nombre" />
+              </SelectTrigger>
+              <SelectContent>
+                {NOMBRES_DISPONIBLES.map((nombre) => (
+                  <SelectItem key={nombre} value={nombre}>
+                    {nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <CafeteriaSelector value={cafeteria} onChange={setCafeteria} />
@@ -179,15 +236,36 @@ const Index = () => {
           )}
           
           {selectedProvider && (
-            <ProductSelector
-              products={selectedProvider.productos}
-              quantities={quantities}
-              onQuantityChange={handleQuantityChange}
-            />
+            <>
+              <CategoryFilter
+                products={selectedProvider.productos}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+              />
+              <ProductSelector
+                products={filteredProducts}
+                quantities={quantities}
+                onQuantityChange={handleQuantityChange}
+                onSelectAll={handleSelectAll}
+                onDeselectAll={handleDeselectAll}
+              />
+            </>
           )}
           
           {selectedProducts.length > 0 && (
             <OrderSummary products={selectedProducts} total={total} />
+          )}
+
+          {selectedProducts.length > 0 && (
+            <div className="space-y-3 animate-fade-in">
+              <Label className="text-sm font-medium text-muted-foreground">Observación (opcional)</Label>
+              <Textarea
+                value={observacion}
+                onChange={(e) => setObservacion(e.target.value)}
+                placeholder="Agrega cualquier observación o nota adicional sobre el pedido..."
+                className="min-h-[100px] bg-card border-border text-foreground placeholder:text-muted-foreground resize-none"
+              />
+            </div>
           )}
           
           {selectedProducts.length > 0 && (

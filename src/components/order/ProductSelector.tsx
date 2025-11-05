@@ -1,6 +1,7 @@
 import { Coffee, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ProductCard } from "./ProductCard";
 import { Product } from "@/types/order";
 import { useMemo, useState } from "react";
@@ -9,9 +10,11 @@ interface ProductSelectorProps {
   products: Product[];
   quantities: Record<string, number>;
   onQuantityChange: (productName: string, quantity: number) => void;
+  onSelectAll?: () => void;
+  onDeselectAll?: () => void;
 }
 
-export const ProductSelector = ({ products, quantities, onQuantityChange }: ProductSelectorProps) => {
+export const ProductSelector = ({ products, quantities, onQuantityChange, onSelectAll, onDeselectAll }: ProductSelectorProps) => {
   const [search, setSearch] = useState("");
   if (products.length === 0) return null;
 
@@ -23,10 +26,34 @@ export const ProductSelector = ({ products, quantities, onQuantityChange }: Prod
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <Label className="text-lg font-serif flex items-center gap-2 text-foreground">
-        <Coffee className="w-5 h-5 text-primary" />
-        Productos Disponibles
-      </Label>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <Label className="text-lg font-serif flex items-center gap-2 text-foreground">
+          <Coffee className="w-5 h-5 text-primary" />
+          Productos Disponibles
+        </Label>
+        {filtered.length > 0 && (onSelectAll || onDeselectAll) && (
+          <div className="flex gap-2">
+            {onSelectAll && (
+              <Button
+                onClick={onSelectAll}
+                size="sm"
+                className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                Seleccionar todos los productos
+              </Button>
+            )}
+            {onDeselectAll && (
+              <Button
+                onClick={onDeselectAll}
+                size="sm"
+                className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                Deseleccionar todos
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

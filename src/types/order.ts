@@ -2,6 +2,7 @@ export interface Product {
   nombre: string;
   precio_unitario: number;
   unidad: string;
+  categoria?: string;
 }
 
 export interface SelectedProduct extends Product {
@@ -17,6 +18,7 @@ export interface Order {
   total_neto: number; // neto (sin IVA)
   iva: number; // 19% del neto
   total_con_iva: number; // neto + IVA
+  observacion: string; // puede estar vacío
 }
 
 export interface Provider {

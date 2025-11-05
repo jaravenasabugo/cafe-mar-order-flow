@@ -89,7 +89,14 @@ export function useProviders(): UseProvidersResult {
           const precioRaw = row["Precio unitario (CLP)"] ?? row["precio_unitario"];
           const precio_unitario = typeof precioRaw === "number" ? precioRaw : Number(String(precioRaw || "0").replace(/[^0-9.,-]/g, "").replace(",", "."));
 
-          const product: Product = { nombre, unidad, precio_unitario: Number.isFinite(precio_unitario) ? precio_unitario : 0 };
+          const categoria = String((row["Categoria"] ?? row["categoria"] ?? "")).trim();
+
+          const product: Product = { 
+            nombre, 
+            unidad, 
+            precio_unitario: Number.isFinite(precio_unitario) ? precio_unitario : 0,
+            categoria: categoria || undefined
+          };
           const list = providerIdToProducts.get(providerId) || [];
           list.push(product);
           providerIdToProducts.set(providerId, list);
