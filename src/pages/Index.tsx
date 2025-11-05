@@ -6,7 +6,7 @@ import { CafeteriaSelector } from "@/components/order/CafeteriaSelector";
 import { ProviderSearch } from "@/components/order/ProviderSearch";
 import { ProductSelector } from "@/components/order/ProductSelector";
 import { OrderSummary } from "@/components/order/OrderSummary";
-import { PROVIDERS } from "@/data/mockData";
+import { useProviders } from "@/hooks/use-providers";
 import { Order, SelectedProduct } from "@/types/order";
 
 const Index = () => {
@@ -14,8 +14,9 @@ const Index = () => {
   const [cafeteria, setCafeteria] = useState("");
   const [providerId, setProviderId] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const { providers, loading, error } = useProviders();
 
-  const selectedProvider = PROVIDERS.find(p => p.id === providerId);
+  const selectedProvider = providers.find(p => p.id === providerId);
   
   const selectedProducts: SelectedProduct[] = useMemo(() => {
     if (!selectedProvider) return [];
@@ -106,7 +107,16 @@ const Index = () => {
         <div className="space-y-8">
           <CafeteriaSelector value={cafeteria} onChange={setCafeteria} />
           
-          <ProviderSearch value={providerId} onChange={setProviderId} />
+          <ProviderSearch 
+            value={providerId} 
+            onChange={setProviderId} 
+            providers={providers}
+            disabled={loading}
+          />
+
+          {error && (
+            <div className="text-sm text-red-500">{error}</div>
+          )}
           
           {selectedProvider && (
             <ProductSelector

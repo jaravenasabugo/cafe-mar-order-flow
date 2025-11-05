@@ -5,17 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { PROVIDERS } from "@/data/mockData";
+import { Provider } from "@/types/order";
 
 interface ProviderSearchProps {
   value: string;
   onChange: (value: string) => void;
+  providers: Provider[];
+  disabled?: boolean;
 }
 
-export const ProviderSearch = ({ value, onChange }: ProviderSearchProps) => {
+export const ProviderSearch = ({ value, onChange, providers, disabled }: ProviderSearchProps) => {
   const [open, setOpen] = useState(false);
   
-  const selectedProvider = PROVIDERS.find((provider) => provider.id === value);
+  const selectedProvider = providers.find((provider) => provider.id === value);
 
   return (
     <div className="space-y-3 animate-fade-in">
@@ -29,9 +31,10 @@ export const ProviderSearch = ({ value, onChange }: ProviderSearchProps) => {
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            disabled={disabled}
             className="w-full h-12 justify-between bg-card border-border hover:border-primary transition-colors text-foreground"
           >
-            {selectedProvider ? selectedProvider.nombre : "Busca o selecciona un proveedor..."}
+            {selectedProvider ? selectedProvider.nombre : (disabled ? "Cargando proveedores..." : "Busca o selecciona un proveedor...")}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -46,7 +49,7 @@ export const ProviderSearch = ({ value, onChange }: ProviderSearchProps) => {
                 No se encontró el proveedor.
               </CommandEmpty>
               <CommandGroup>
-                {PROVIDERS.map((provider) => (
+                {providers.map((provider) => (
                   <CommandItem
                     key={provider.id}
                     value={provider.nombre}
