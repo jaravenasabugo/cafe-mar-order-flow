@@ -35,6 +35,8 @@ const Index = () => {
   }, [selectedProvider, quantities]);
 
   const total = selectedProducts.reduce((sum, product) => sum + product.subtotal, 0);
+  const iva = Math.round(total * 0.19);
+  const totalConIva = total + iva;
 
   const handleQuantityChange = (productName: string, quantity: number) => {
     setQuantities(prev => ({
@@ -84,7 +86,9 @@ const Index = () => {
       cafeteria,
       proveedor: selectedProvider?.nombre || "",
       productos: selectedProducts,
-      total,
+      total_neto: total,
+      iva,
+      total_con_iva: totalConIva,
     };
     
     const webhookUrl = import.meta.env.VITE_ORDER_WEBHOOK_URL as string | undefined;
@@ -114,7 +118,7 @@ const Index = () => {
 
       toast({
         title: "✅ Pedido enviado con éxito",
-        description: `Pedido de ${selectedProducts.length} producto(s) por $${total.toLocaleString('es-CL')}`,
+        description: `Pedido de ${selectedProducts.length} producto(s) por $${totalConIva.toLocaleString('es-CL')} (incluye IVA)`,
       });
 
       // Reset form

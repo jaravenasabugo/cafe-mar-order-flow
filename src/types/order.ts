@@ -14,7 +14,9 @@ export interface Order {
   cafeteria: string;
   proveedor: string;
   productos: SelectedProduct[];
-  total: number;
+  total_neto: number; // neto (sin IVA)
+  iva: number; // 19% del neto
+  total_con_iva: number; // neto + IVA
 }
 
 export interface Provider {
