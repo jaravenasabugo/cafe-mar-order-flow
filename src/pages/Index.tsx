@@ -15,6 +15,7 @@ const Index = () => {
   const [providerId, setProviderId] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const { providers, loading, error } = useProviders();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedProvider = providers.find(p => p.id === providerId);
   
@@ -73,20 +74,51 @@ const Index = () => {
       productos: selectedProducts,
       total,
     };
+    
+    const webhookUrl = import.meta.env.VITE_ORDER_WEBHOOK_URL as string | undefined;
+    if (!webhookUrl) {
+      toast({
+        title: "Error de configuración",
+        description: "Falta VITE_ORDER_WEBHOOK_URL en el archivo .env",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Aquí se enviaría a Google Sheets
-    console.log("Pedido a enviar:", JSON.stringify(order, null, 2));
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(order),
+      });
 
-    // Simulación de envío exitoso
-    toast({
-      title: "✅ Pedido enviado con éxito",
-      description: `Pedido de ${selectedProducts.length} producto(s) por $${total.toLocaleString('es-CL')}`,
-    });
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || `HTTP ${response.status}`);
+      }
 
-    // Reset form
-    setCafeteria("");
-    setProviderId("");
-    setQuantities({});
+      toast({
+        title: "✅ Pedido enviado con éxito",
+        description: `Pedido de ${selectedProducts.length} producto(s) por $${total.toLocaleString('es-CL')}`,
+      });
+
+      // Reset form
+      setCafeteria("");
+      setProviderId("");
+      setQuantities({});
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      toast({
+        title: "Error al enviar pedido",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -133,10 +165,11 @@ const Index = () => {
           {selectedProducts.length > 0 && (
             <Button
               onClick={handleSubmit}
+              disabled={isSubmitting}
               className="w-full h-14 text-lg font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 hover:scale-[1.02]"
             >
               <Send className="mr-2 h-5 w-5" />
-              Enviar Pedido
+              {isSubmitting ? "Enviando..." : "Enviar Pedido"}
             </Button>
           )}
         </div>
