@@ -87,7 +87,7 @@ const Index = () => {
 
     try {
       setIsSubmitting(true);
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(webhookUrl!, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
