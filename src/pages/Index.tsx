@@ -36,18 +36,19 @@ const Index = () => {
 
   const selectedProvider = providers.find(p => p.id === providerId);
   
-  // Resetear categoría cuando cambia el proveedor
+  // Resetear categoría y cantidades cuando cambia el proveedor
   useEffect(() => {
     setSelectedCategory(null);
+    setQuantities({});
   }, [providerId]);
   
   const filteredProducts = useMemo(() => {
-    if (!selectedProvider) return [];
+    if (!selectedProvider || !providerId) return [];
     if (!selectedCategory) return selectedProvider.productos;
     return selectedProvider.productos.filter(
       product => product.categoria?.trim() === selectedCategory
     );
-  }, [selectedProvider, selectedCategory]);
+  }, [selectedProvider, selectedCategory, providerId]);
   
   const selectedProducts: SelectedProduct[] = useMemo(() => {
     if (!selectedProvider) return [];
@@ -243,6 +244,7 @@ const Index = () => {
                 onCategoryChange={setSelectedCategory}
               />
               <ProductSelector
+                key={providerId}
                 products={filteredProducts}
                 quantities={quantities}
                 onQuantityChange={handleQuantityChange}
