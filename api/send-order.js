@@ -4,14 +4,26 @@
  */
 
 export default async function handler(req, res) {
+  // Configurar headers CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Manejar preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const webhookUrl = process.env.VITE_ORDER_WEBHOOK_URL;
+  // Intentar obtener la URL del webhook desde variables de entorno
+  // Soporta tanto VITE_ORDER_WEBHOOK_URL como ORDER_WEBHOOK_URL
+  const webhookUrl = process.env.ORDER_WEBHOOK_URL || process.env.VITE_ORDER_WEBHOOK_URL;
   if (!webhookUrl) {
-    return res.status(500).json({ error: 'Missing VITE_ORDER_WEBHOOK_URL env' });
+    return res.status(500).json({ error: 'Missing ORDER_WEBHOOK_URL env variable' });
   }
 
   try {

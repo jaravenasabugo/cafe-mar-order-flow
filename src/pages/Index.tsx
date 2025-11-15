@@ -140,20 +140,11 @@ const Index = () => {
       total_con_iva: totalConIva,
       observacion: observacion.trim(),
     };
-    
-    const webhookUrl = import.meta.env.VITE_ORDER_WEBHOOK_URL as string | undefined;
-    if (!webhookUrl) {
-      toast({
-        title: "Error de configuración",
-        description: "Falta VITE_ORDER_WEBHOOK_URL en el archivo .env",
-        variant: "destructive",
-      });
-      return;
-    }
 
     try {
       setIsSubmitting(true);
-      const response = await fetch(webhookUrl!, {
+      // Usar la función serverless de Vercel como proxy para evitar problemas de CORS
+      const response = await fetch("/api/send-order", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
