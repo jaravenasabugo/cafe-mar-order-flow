@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Product } from "@/types/order";
 
@@ -10,6 +12,13 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product, quantity, onQuantityChange }: ProductCardProps) => {
+  const [inputValue, setInputValue] = useState<string>(quantity.toString());
+
+  // Sincronizar el input cuando cambia la cantidad externamente (por ejemplo, desde botones)
+  useEffect(() => {
+    setInputValue(quantity.toString());
+  }, [quantity]);
+
   const handleDecrease = () => {
     if (quantity > 0) {
       onQuantityChange(quantity - 1);
@@ -18,6 +27,35 @@ export const ProductCard = ({ product, quantity, onQuantityChange }: ProductCard
 
   const handleIncrease = () => {
     onQuantityChange(quantity + 1);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Permitir campo vacío mientras se escribe
+    if (value === "" || value === "-") {
+      setInputValue(value);
+      return;
+    }
+
+    // Validar que sea un número entero positivo
+    const numValue = parseInt(value, 10);
+    
+    if (!isNaN(numValue) && numValue >= 0) {
+      setInputValue(value);
+      onQuantityChange(numValue);
+    }
+  };
+
+  const handleInputBlur = () => {
+    // Cuando se pierde el foco, asegurar que el valor sea válido
+    const numValue = parseInt(inputValue, 10);
+    if (isNaN(numValue) || numValue < 0) {
+      setInputValue("0");
+      onQuantityChange(0);
+    } else {
+      setInputValue(numValue.toString());
+    }
   };
 
   const subtotal = quantity * product.precio_unitario;
@@ -47,20 +85,27 @@ export const ProductCard = ({ product, quantity, onQuantityChange }: ProductCard
             size="icon"
             onClick={handleDecrease}
             disabled={quantity === 0}
-            className="h-9 w-9 rounded-full border-primary/50 hover:bg-primary hover:text-primary-foreground"
+            className="h-9 w-9 rounded-full border-primary/50 hover:bg-primary hover:text-primary-foreground shrink-0"
           >
             <Minus className="h-4 w-4" />
           </Button>
           
-          <span className="w-12 text-center font-semibold text-lg text-foreground">
-            {quantity}
-          </span>
+          <Input
+            type="text"
+            inputMode="numeric"
+            value={inputValue}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
+            className="w-20 text-center font-semibold text-lg h-9 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            placeholder="0"
+            min={0}
+          />
           
           <Button
             variant="outline"
             size="icon"
             onClick={handleIncrease}
-            className="h-9 w-9 rounded-full border-primary/50 hover:bg-primary hover:text-primary-foreground"
+            className="h-9 w-9 rounded-full border-primary/50 hover:bg-primary hover:text-primary-foreground shrink-0"
           >
             <Plus className="h-4 w-4" />
           </Button>

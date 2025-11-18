@@ -1,38 +1,53 @@
 import { useState, useMemo, useEffect } from "react";
-import { Send } from "lucide-react";
+import { Send, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { CafeteriaSelector } from "@/components/order/CafeteriaSelector";
 import { ProviderSearch } from "@/components/order/ProviderSearch";
 import { CategoryFilter } from "@/components/order/CategoryFilter";
 import { ProductSelector } from "@/components/order/ProductSelector";
 import { OrderSummary } from "@/components/order/OrderSummary";
 import { useProviders } from "@/hooks/use-providers";
+import { useEncargados } from "@/hooks/use-encargados";
 import { Order, SelectedProduct } from "@/types/order";
-
-const NOMBRES_DISPONIBLES = [
-  "Dennise",
-  "Renée",
-  "Edward",
-  "Alexis",
-  "Manuel",
-  "Monica",
-  "Diego"
-];
 
 const Index = () => {
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [cafeteria, setCafeteria] = useState("");
-  const [fullName, setFullName] = useState("");
   const [providerId, setProviderId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [observacion, setObservacion] = useState("");
   const { providers, loading, error } = useProviders();
+  const { getEncargadoByEmail, loading: loadingEncargados } = useEncargados();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Obtener nombre del usuario desde Google Sheets basado en su email
+  const userEncargado = useMemo(() => {
+    if (!user?.email) return null;
+    return getEncargadoByEmail(user.email);
+  }, [user?.email, getEncargadoByEmail]);
+
+  const userFullName = userEncargado?.nombre || "";
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error al cerrar sesión",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      navigate("/login");
+    }
+  };
 
   const selectedProvider = providers.find(p => p.id === providerId);
   
@@ -95,14 +110,24 @@ const Index = () => {
   };
 
   const handleSubmit = async () => {
-    if (!fullName.trim()) {
+    if (!user?.email) {
       toast({
         title: "Error",
-        description: "Por favor selecciona tu nombre",
+        description: "No se encontró información del usuario",
         variant: "destructive",
       });
       return;
     }
+
+    if (!userFullName.trim()) {
+      toast({
+        title: "Error",
+        description: "No se pudo encontrar tu nombre en el sistema. Por favor verifica que tu email esté registrado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!cafeteria) {
       toast({
         title: "Error",
@@ -131,7 +156,7 @@ const Index = () => {
     }
 
     const order: Order = {
-      solicitante: fullName.trim(),
+      solicitante: userFullName.trim(),
       cafeteria,
       proveedor: selectedProvider?.nombre || "",
       productos: selectedProducts,
@@ -163,7 +188,6 @@ const Index = () => {
       });
 
       // Reset form
-      setFullName("");
       setCafeteria("");
       setProviderId("");
       setSelectedCategory(null);
@@ -185,7 +209,18 @@ const Index = () => {
     <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-10 animate-fade-in">
+        <div className="text-center mb-10 animate-fade-in relative">
+          <div className="absolute top-0 right-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Cerrar sesión
+            </Button>
+          </div>
           <h1 className="text-4xl sm:text-5xl font-serif font-bold mb-3 text-foreground">
             Café Mar de Viña
           </h1>
@@ -193,27 +228,28 @@ const Index = () => {
           <p className="text-lg text-muted-foreground font-light">
             Sistema de Pedidos a Proveedores
           </p>
+          {user && (
+            <div className="text-sm text-muted-foreground mt-2">
+              {loadingEncargados ? (
+                <p>Cargando información del usuario...</p>
+              ) : userEncargado ? (
+                <p>
+                  Conectado como: <span className="font-medium text-foreground">{userEncargado.nombre}</span> ({user.email})
+                </p>
+              ) : (
+                <p>
+                  Conectado como: {user.email}
+                  <span className="text-destructive block mt-1 text-xs">
+                    ⚠️ No se encontró tu nombre en el sistema
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Form */}
         <div className="space-y-8">
-          {/* Nombre y Apellido */}
-          <div className="space-y-3 animate-fade-in">
-            <Label className="text-lg font-serif text-foreground">Nombre y apellido</Label>
-            <Select value={fullName} onValueChange={setFullName}>
-              <SelectTrigger className="h-12 bg-card border-border text-foreground">
-                <SelectValue placeholder="Selecciona tu nombre" />
-              </SelectTrigger>
-              <SelectContent>
-                {NOMBRES_DISPONIBLES.map((nombre) => (
-                  <SelectItem key={nombre} value={nombre}>
-                    {nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <CafeteriaSelector value={cafeteria} onChange={setCafeteria} />
           
           <ProviderSearch 
