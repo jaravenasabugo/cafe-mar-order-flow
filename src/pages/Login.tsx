@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/components/theme-provider";
 
 const loginSchema = z.object({
   email: z.string().email("Debe ser un email válido"),
@@ -59,6 +60,7 @@ const Login = () => {
   const { toast } = useToast();
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const { resolvedTheme, setTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -103,7 +105,25 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8 relative">
+      {/* Botón de tema en la esquina superior derecha */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => {
+          const newTheme = resolvedTheme === "light" ? "dark" : "light";
+          setTheme(newTheme);
+        }}
+        className="absolute top-4 right-4 h-9 w-9 text-muted-foreground hover:text-foreground"
+        aria-label={resolvedTheme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+      >
+        {resolvedTheme === "light" ? (
+          <Moon className="h-4 w-4" />
+        ) : (
+          <Sun className="h-4 w-4" />
+        )}
+      </Button>
+
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="text-center mb-4">

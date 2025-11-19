@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { FileText, BarChart3, LogOut } from "lucide-react";
+import { FileText, BarChart3, LogOut, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -11,6 +12,7 @@ export function Navbar() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
   const handleLogout = async () => {
     const { error } = await signOut();
@@ -73,22 +75,41 @@ export function Navbar() {
             })}
           </div>
 
-          {/* Usuario y logout */}
-          <div className="flex items-center gap-4">
+          {/* Usuario, tema y logout */}
+          <div className="flex items-center gap-2">
             {user && (
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 {user.email}
               </span>
             )}
+            {/* Botón de tema */}
             <Button
               variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="text-muted-foreground hover:text-foreground"
+              size="icon"
+              onClick={() => {
+                const newTheme = resolvedTheme === "light" ? "dark" : "light";
+                setTheme(newTheme);
+              }}
+              className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label={resolvedTheme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
             >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Cerrar sesión</span>
+              {resolvedTheme === "light" ? (
+                <Moon className="h-4 w-4" />
+              ) : (
+                <Sun className="h-4 w-4" />
+              )}
             </Button>
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
