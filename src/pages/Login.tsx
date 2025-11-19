@@ -90,7 +90,7 @@ const Login = () => {
         description: "Has iniciado sesión correctamente",
       });
 
-      navigate("/");
+      navigate("/ordenes");
     } catch (err) {
       toast({
         title: "Error inesperado",

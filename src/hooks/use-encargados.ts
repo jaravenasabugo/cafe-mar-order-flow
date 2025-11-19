@@ -4,6 +4,7 @@ import { fetchSheetRows } from "@/lib/googleSheets";
 export interface Encargado {
   nombre: string;
   mail: string;
+  local: string;
 }
 
 interface UseEncargadosResult {
@@ -14,7 +15,7 @@ interface UseEncargadosResult {
 }
 
 // Estructura esperada en Google Sheets:
-// Hoja de Encargados: columnas -> Nombre, Mail
+// Hoja de Encargados: columnas -> Nombre, Mail, Local
 export function useEncargados(): UseEncargadosResult {
   const [encargados, setEncargados] = useState<Encargado[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -39,15 +40,16 @@ export function useEncargados(): UseEncargadosResult {
 
         const encargadoRows = await fetchSheetRows(sheetId, sheetEncargados);
 
-        // Parsear encargados con columnas Nombre y Mail
+        // Parsear encargados con columnas Nombre, Mail y Local
         const encargadosParsed: Encargado[] = [];
         for (const row of encargadoRows) {
           const nombre = String((row["Nombre"] ?? row["nombre"] ?? "")).trim();
           const mail = String((row["Mail"] ?? row["mail"] ?? row["Email"] ?? row["email"] ?? "")).trim().toLowerCase();
+          const local = String((row["Local"] ?? row["local"] ?? "")).trim();
           
           if (!nombre || !mail) continue;
           
-          encargadosParsed.push({ nombre, mail });
+          encargadosParsed.push({ nombre, mail, local: local || "General" });
         }
 
         if (!cancelled) setEncargados(encargadosParsed);

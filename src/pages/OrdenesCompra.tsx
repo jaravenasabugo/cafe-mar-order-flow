@@ -1,11 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-import { Send, LogOut } from "lucide-react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 import { CafeteriaSelector } from "@/components/order/CafeteriaSelector";
 import { ProviderSearch } from "@/components/order/ProviderSearch";
 import { CategoryFilter } from "@/components/order/CategoryFilter";
@@ -15,10 +14,9 @@ import { useProviders } from "@/hooks/use-providers";
 import { useEncargados } from "@/hooks/use-encargados";
 import { Order, SelectedProduct } from "@/types/order";
 
-const Index = () => {
+const OrdenesCompra = () => {
   const { toast } = useToast();
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [cafeteria, setCafeteria] = useState("");
   const [providerId, setProviderId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -35,19 +33,6 @@ const Index = () => {
   }, [user?.email, getEncargadoByEmail]);
 
   const userFullName = userEncargado?.nombre || "";
-
-  const handleLogout = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast({
-        title: "Error al cerrar sesión",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      navigate("/login");
-    }
-  };
 
   const selectedProvider = providers.find(p => p.id === providerId);
   
@@ -206,23 +191,12 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
+    <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-10 animate-fade-in relative">
-          <div className="absolute top-0 right-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Cerrar sesión
-            </Button>
-          </div>
+        <div className="text-center mb-10 animate-fade-in">
           <h1 className="text-4xl sm:text-5xl font-serif font-bold mb-3 text-foreground">
-            Café Mar de Viña
+            Generar Ordenes de Compra
           </h1>
           <div className="h-1 w-24 bg-primary mx-auto mb-4"></div>
           <p className="text-lg text-muted-foreground font-light">
@@ -234,11 +208,11 @@ const Index = () => {
                 <p>Cargando información del usuario...</p>
               ) : userEncargado ? (
                 <p>
-                  Conectado como: <span className="font-medium text-foreground">{userEncargado.nombre}</span> ({user.email})
+                  <span className="font-medium text-foreground">{userEncargado.nombre}</span> ({user.email})
                 </p>
               ) : (
                 <p>
-                  Conectado como: {user.email}
+                  {user.email}
                   <span className="text-destructive block mt-1 text-xs">
                     ⚠️ No se encontró tu nombre en el sistema
                   </span>
@@ -313,4 +287,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default OrdenesCompra;
