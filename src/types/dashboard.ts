@@ -29,3 +29,48 @@ export interface OrdenGrouped {
   [key: string]: number;
 }
 
+// Tipos para el Dashboard de Facturas
+
+export interface FacturaDashboard {
+  idFactura: string;
+  localidad: string;
+  numeroFactura: string;
+  fechaEmision: string; // Formato: YYYY-MM-DD o similar
+  fechaRecepcion: string; // Formato: YYYY-MM-DD o similar
+  fechaVencimiento: string; // Formato: YYYY-MM-DD o similar
+  rutEmisor: string;
+  nombreEmisor: string;
+  tipoDocumento: string;
+  formaPago: string;
+  fechaPago: string | null; // Puede estar vacío
+  condicionPago: string;
+  montoNeto: number;
+  iva: number;
+  montoTotal: number;
+  observacion: string;
+}
+
+export interface DetalleFactura {
+  idFactura: string;
+  producto: string;
+  cantidad: number;
+  precioUnitario: number;
+  precioTotal: number;
+}
+
+export interface FacturaFilters {
+  localidad: string[]; // [] = todas
+  nombreEmisor: string[]; // [] = todos
+  tipoDocumento: string[]; // [] = todos
+  formaPago: string[]; // [] = todas
+  condicionPago: string[]; // [] = todas
+  montoMin: number | null;
+  montoMax: number | null;
+  fechaInicio: string | null; // YYYY-MM-DD
+  fechaFin: string | null; // YYYY-MM-DD
+  tipoFecha: "emision" | "recepcion" | "vencimiento"; // Tipo de fecha a filtrar
+  busqueda: string; // búsqueda parcial en numeroFactura o rutEmisor
+}
+
+export type UserRole = 'admin' | 'encargado';
+

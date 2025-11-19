@@ -1,10 +1,16 @@
 import { useState, useMemo, useCallback } from "react";
 import { useOrdenes } from "@/hooks/use-ordenes";
-import { OrdenDashboard, OrdenFilters } from "@/types/dashboard";
+import { useFacturas } from "@/hooks/use-facturas";
+import { useDetallesFacturas } from "@/hooks/use-detalles-facturas";
+import { OrdenDashboard, OrdenFilters, FacturaDashboard, FacturaFilters } from "@/types/dashboard";
 import { OrdersFilters } from "@/components/dashboard/OrdersFilters";
 import { OrdersSummaryCards } from "@/components/dashboard/OrdersSummaryCards";
 import { OrdersCharts } from "@/components/dashboard/OrdersCharts";
 import { OrdersTable } from "@/components/dashboard/OrdersTable";
+import { InvoicesFilters } from "@/components/dashboard/InvoicesFilters";
+import { InvoicesSummaryCards } from "@/components/dashboard/InvoicesSummaryCards";
+import { InvoicesCharts } from "@/components/dashboard/InvoicesCharts";
+import { InvoicesTable } from "@/components/dashboard/InvoicesTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { parse, isValid } from "date-fns";
 
@@ -14,12 +20,20 @@ interface DashboardLocalProps {
 
 export default function DashboardLocal({ local }: DashboardLocalProps) {
   const { ordenes, loading, error } = useOrdenes();
+  const { facturas: facturasRaw, loading: loadingFacturas, error: errorFacturas } = useFacturas();
+  const { detalles: detallesFacturas, loading: loadingDetalles, getDetallesByFacturaId } = useDetallesFacturas();
+  
   const [activeTab, setActiveTab] = useState<"ordenes" | "facturas">("ordenes");
   
   // Filtrar órdenes por el local del usuario (automáticamente)
   const ordenesDelLocal = useMemo(() => {
     return ordenes.filter((orden) => orden.cafeteria === local);
   }, [ordenes, local]);
+
+  // Filtrar facturas por el local del usuario (automáticamente)
+  const facturasDelLocal = useMemo(() => {
+    return facturasRaw.filter((factura) => factura.localidad === local);
+  }, [facturasRaw, local]);
 
   const [filters, setFilters] = useState<OrdenFilters>({
     cafeteria: [], // No se usa, pero se mantiene para compatibilidad
@@ -32,7 +46,22 @@ export default function DashboardLocal({ local }: DashboardLocalProps) {
     numeroOrden: "",
   });
 
-  // Función para limpiar todos los filtros
+  // Filtros para facturas
+  const [invoiceFilters, setInvoiceFilters] = useState<FacturaFilters>({
+    localidad: [], // No se usa para encargados, pero se mantiene para compatibilidad
+    nombreEmisor: [],
+    tipoDocumento: [],
+    formaPago: [],
+    condicionPago: [],
+    montoMin: null,
+    montoMax: null,
+    fechaInicio: null,
+    fechaFin: null,
+    tipoFecha: "emision",
+    busqueda: "",
+  });
+
+  // Función para limpiar todos los filtros de órdenes
   const handleClearFilters = () => {
     setFilters({
       cafeteria: [],
@@ -43,6 +72,23 @@ export default function DashboardLocal({ local }: DashboardLocalProps) {
       fechaInicio: null,
       fechaFin: null,
       numeroOrden: "",
+    });
+  };
+
+  // Función para limpiar todos los filtros de facturas
+  const handleClearInvoiceFilters = () => {
+    setInvoiceFilters({
+      localidad: [],
+      nombreEmisor: [],
+      tipoDocumento: [],
+      formaPago: [],
+      condicionPago: [],
+      montoMin: null,
+      montoMax: null,
+      fechaInicio: null,
+      fechaFin: null,
+      tipoFecha: "emision",
+      busqueda: "",
     });
   };
 
@@ -179,10 +225,116 @@ export default function DashboardLocal({ local }: DashboardLocalProps) {
     });
   };
 
+  // Función para aplicar filtros de facturas
+  const applyInvoiceFilters = useCallback((facturas: FacturaDashboard[], filters: FacturaFilters): FacturaDashboard[] => {
+    return facturas.filter((factura) => {
+      // No aplicar filtro de localidad ya que las facturas ya están filtradas por local
+
+      // Filtro por emisor (múltiple)
+      if (filters.nombreEmisor.length > 0 && !filters.nombreEmisor.includes(factura.nombreEmisor)) {
+        return false;
+      }
+
+      // Filtro por tipo de documento (múltiple)
+      if (filters.tipoDocumento.length > 0 && !filters.tipoDocumento.includes(factura.tipoDocumento)) {
+        return false;
+      }
+
+      // Filtro por forma de pago (múltiple)
+      if (filters.formaPago.length > 0 && !filters.formaPago.includes(factura.formaPago)) {
+        return false;
+      }
+
+      // Filtro por condición de pago (múltiple)
+      if (filters.condicionPago.length > 0 && !filters.condicionPago.includes(factura.condicionPago)) {
+        return false;
+      }
+
+      // Filtro por rango de monto
+      if (filters.montoMin !== null && factura.montoTotal < filters.montoMin) {
+        return false;
+      }
+      if (filters.montoMax !== null && factura.montoTotal > filters.montoMax) {
+        return false;
+      }
+
+      // Filtro por fecha (según tipoFecha)
+      if (filters.fechaInicio || filters.fechaFin) {
+        let fechaFactura: string;
+        switch (filters.tipoFecha) {
+          case "recepcion":
+            fechaFactura = factura.fechaRecepcion;
+            break;
+          case "vencimiento":
+            fechaFactura = factura.fechaVencimiento;
+            break;
+          default:
+            fechaFactura = factura.fechaEmision;
+        }
+
+        const facturaDate = parseDate(fechaFactura);
+        if (!facturaDate) {
+          return false;
+        }
+
+        const normalizeDate = (date: Date): Date => {
+          const normalized = new Date(date);
+          normalized.setHours(0, 0, 0, 0);
+          return normalized;
+        };
+
+        const facturaDateNormalized = normalizeDate(facturaDate);
+
+        if (filters.fechaInicio) {
+          const parts = filters.fechaInicio.split("-");
+          if (parts.length === 3) {
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            const fechaInicio = normalizeDate(new Date(year, month, day));
+            if (facturaDateNormalized.getTime() < fechaInicio.getTime()) {
+              return false;
+            }
+          }
+        }
+
+        if (filters.fechaFin) {
+          const parts = filters.fechaFin.split("-");
+          if (parts.length === 3) {
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            const fechaFin = normalizeDate(new Date(year, month, day));
+            if (facturaDateNormalized.getTime() > fechaFin.getTime()) {
+              return false;
+            }
+          }
+        }
+      }
+
+      // Filtro por búsqueda (número de factura o RUT)
+      if (filters.busqueda) {
+        const searchTerm = filters.busqueda.toLowerCase();
+        const matchNumero = factura.numeroFactura.toLowerCase().includes(searchTerm);
+        const matchRut = factura.rutEmisor.toLowerCase().includes(searchTerm);
+        if (!matchNumero && !matchRut) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [parseDate]);
+
   // Aplicar filtros usando useMemo para optimización
   const filteredOrdenes = useMemo(() => {
     return applyFilters(ordenesDelLocal, filters);
   }, [ordenesDelLocal, filters, parseDate]);
+
+  // Aplicar filtros de facturas
+  const filteredFacturas = useMemo(() => {
+    return applyInvoiceFilters(facturasDelLocal, invoiceFilters);
+  }, [facturasDelLocal, invoiceFilters, applyInvoiceFilters]);
 
   if (loading) {
     return (
@@ -286,16 +438,33 @@ export default function DashboardLocal({ local }: DashboardLocalProps) {
             <OrdersTable ordenes={filteredOrdenes} />
           </TabsContent>
 
-          {/* Contenido: Facturas (Placeholder) */}
+          {/* Contenido: Facturas */}
           <TabsContent value="facturas" className="mt-6">
-            <div className="rounded-lg border border-dashed p-12 text-center">
-              <p className="text-lg font-medium text-muted-foreground">
-                Próximamente dashboard de facturas
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Esta sección estará disponible en una futura actualización
-              </p>
-            </div>
+            {/* Filtros */}
+            <InvoicesFilters
+              facturas={facturasDelLocal}
+              filters={invoiceFilters}
+              onFiltersChange={setInvoiceFilters}
+              onClearFilters={handleClearInvoiceFilters}
+              hideLocalidadFilter={true}
+              localidadesDisponibles={[local]}
+            />
+
+            {/* Cards de resumen */}
+            <InvoicesSummaryCards facturas={filteredFacturas} />
+
+            {/* Gráficos */}
+            <InvoicesCharts 
+              facturas={filteredFacturas} 
+              hideLocalidadCharts={true}
+            />
+
+            {/* Tabla */}
+            <InvoicesTable 
+              facturas={filteredFacturas} 
+              detalles={detallesFacturas}
+              getDetallesByFacturaId={getDetallesByFacturaId}
+            />
           </TabsContent>
         </Tabs>
       </div>
