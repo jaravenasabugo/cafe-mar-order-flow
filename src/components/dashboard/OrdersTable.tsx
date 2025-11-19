@@ -5,6 +5,7 @@ import { ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { OrdenDashboard } from "@/types/dashboard";
 import { parse, isValid, format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface OrdersTableProps {
   ordenes: OrdenDashboard[];
@@ -16,6 +17,7 @@ type SortDirection = "asc" | "desc";
 export function OrdersTable({ ordenes }: OrdersTableProps) {
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const isMobile = useIsMobile();
 
   // Función para parsear fechas (acepta formato Date(...) de Google Sheets)
   const parseDate = (dateStr: string): Date | null => {
@@ -118,6 +120,17 @@ export function OrdersTable({ ordenes }: OrdersTableProps) {
     );
   };
 
+  // Función auxiliar para obtener el color del estado
+  const getEstadoColors = (estado: string) => {
+    const estadoLower = estado.toLowerCase();
+    if (estadoLower.includes("aprobada") || estadoLower.includes("aprobado") || estadoLower.includes("aprob")) {
+      return { bg: "bg-green-100", text: "text-green-800" };
+    } else if (estadoLower.includes("rechazada") || estadoLower.includes("rechazado") || estadoLower.includes("rechaz")) {
+      return { bg: "bg-red-100", text: "text-red-800" };
+    }
+    return { bg: "bg-yellow-100", text: "text-yellow-800" };
+  };
+
   if (ordenes.length === 0) {
     return (
       <Card>
@@ -130,6 +143,86 @@ export function OrdersTable({ ordenes }: OrdersTableProps) {
     );
   }
 
+  // Vista de tarjetas para móvil
+  if (isMobile) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Órdenes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {sortedOrdenes.map((orden) => {
+              const estadoColors = getEstadoColors(orden.estadoAprobacion || "Pendiente");
+              return (
+                <Card key={orden.numeroOrden} className="p-4">
+                  <div className="space-y-3">
+                    {/* Header con número de orden y estado */}
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg">Orden #{orden.numeroOrden}</h3>
+                        <p className="text-sm text-muted-foreground">{formatDate(orden.fechaPedido)}</p>
+                      </div>
+                      <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", estadoColors.bg, estadoColors.text)}>
+                        {orden.estadoAprobacion || "Pendiente"}
+                      </span>
+                    </div>
+
+                    {/* Información principal */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Cafetería:</span>
+                        <span className="text-sm font-medium">{orden.cafeteria || "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Solicitante:</span>
+                        <span className="text-sm font-medium">{orden.solicitante || "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Proveedor:</span>
+                        <span className="text-sm font-medium">{orden.proveedor || "-"}</span>
+                      </div>
+                      <div className="flex justify-between border-t pt-2">
+                        <span className="text-sm font-semibold text-muted-foreground">Total + IVA:</span>
+                        <span className="text-sm font-bold">
+                          ${orden.total_con_iva.toLocaleString("es-CL", { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Observación */}
+                    {orden.observacion && (
+                      <div className="border-t pt-2">
+                        <p className="text-xs text-muted-foreground mb-1">Observación:</p>
+                        <p className="text-sm">{orden.observacion}</p>
+                      </div>
+                    )}
+
+                    {/* Botón PDF */}
+                    {orden.linkOrdenCompra && orden.linkOrdenCompra.trim() !== "" && (
+                      <div className="border-t pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(orden.linkOrdenCompra, "_blank")}
+                          className="w-full"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Ver PDF
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Vista de tabla para desktop
   return (
     <Card>
       <CardHeader>
@@ -176,67 +269,50 @@ export function OrdersTable({ ordenes }: OrdersTableProps) {
               </tr>
             </thead>
             <tbody>
-              {sortedOrdenes.map((orden, index) => (
-                <tr
-                  key={orden.numeroOrden}
-                  className={cn(
-                    "border-b hover:bg-muted/50",
-                    index % 2 === 0 ? "bg-background" : "bg-muted/20"
-                  )}
-                >
-                  <td className="p-3">{orden.numeroOrden}</td>
-                  <td className="p-3">{orden.cafeteria || "-"}</td>
-                  <td className="p-3">{orden.solicitante || "-"}</td>
-                  <td className="p-3">{orden.proveedor || "-"}</td>
-                  <td className="p-3">
-                    ${orden.total_con_iva.toLocaleString("es-CL", { maximumFractionDigits: 0 })}
-                  </td>
-                  <td className="p-3">{formatDate(orden.fechaPedido)}</td>
-                  <td className="p-3">
-                    {(() => {
-                      const estado = (orden.estadoAprobacion || "Pendiente").toLowerCase();
-                      let bgColor = "bg-yellow-100";
-                      let textColor = "text-yellow-800";
-                      
-                      if (estado.includes("aprobada") || estado.includes("aprobado") || estado.includes("aprob")) {
-                        bgColor = "bg-green-100";
-                        textColor = "text-green-800";
-                      } else if (estado.includes("rechazada") || estado.includes("rechazado") || estado.includes("rechaz")) {
-                        bgColor = "bg-red-100";
-                        textColor = "text-red-800";
-                      } else {
-                        // Pendiente por defecto (amarillo)
-                        bgColor = "bg-yellow-100";
-                        textColor = "text-yellow-800";
-                      }
-                      
-                      return (
-                        <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", bgColor, textColor)}>
-                          {orden.estadoAprobacion || "Pendiente"}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td className="p-3 max-w-xs truncate" title={orden.observacion}>
-                    {orden.observacion || "-"}
-                  </td>
-                  <td className="p-3">
-                    {orden.linkOrdenCompra && orden.linkOrdenCompra.trim() !== "" ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(orden.linkOrdenCompra, "_blank")}
-                        className="h-8"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Ver PDF
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">-</span>
+              {sortedOrdenes.map((orden, index) => {
+                const estadoColors = getEstadoColors(orden.estadoAprobacion || "Pendiente");
+                return (
+                  <tr
+                    key={orden.numeroOrden}
+                    className={cn(
+                      "border-b hover:bg-muted/50",
+                      index % 2 === 0 ? "bg-background" : "bg-muted/20"
                     )}
-                  </td>
-                </tr>
-              ))}
+                  >
+                    <td className="p-3">{orden.numeroOrden}</td>
+                    <td className="p-3">{orden.cafeteria || "-"}</td>
+                    <td className="p-3">{orden.solicitante || "-"}</td>
+                    <td className="p-3">{orden.proveedor || "-"}</td>
+                    <td className="p-3">
+                      ${orden.total_con_iva.toLocaleString("es-CL", { maximumFractionDigits: 0 })}
+                    </td>
+                    <td className="p-3">{formatDate(orden.fechaPedido)}</td>
+                    <td className="p-3">
+                      <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", estadoColors.bg, estadoColors.text)}>
+                        {orden.estadoAprobacion || "Pendiente"}
+                      </span>
+                    </td>
+                    <td className="p-3 max-w-xs truncate" title={orden.observacion}>
+                      {orden.observacion || "-"}
+                    </td>
+                    <td className="p-3">
+                      {orden.linkOrdenCompra && orden.linkOrdenCompra.trim() !== "" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(orden.linkOrdenCompra, "_blank")}
+                          className="h-8"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Ver PDF
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
