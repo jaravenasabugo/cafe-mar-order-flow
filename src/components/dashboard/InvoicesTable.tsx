@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, ArrowUp, ArrowDown, Eye, X } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Eye, X, ExternalLink } from "lucide-react";
 import { FacturaDashboard, DetalleFactura } from "@/types/dashboard";
 import { parse, isValid, format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -212,8 +212,19 @@ export function InvoicesTable({ facturas, detalles, getDetallesByFacturaId }: In
                         </div>
                       )}
 
-                      {/* Botón Ver Detalle */}
-                      <div className="border-t pt-2">
+                      {/* Botones de acción */}
+                      <div className="border-t pt-2 space-y-2">
+                        {factura.linkFactura && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(factura.linkFactura, '_blank', 'noopener,noreferrer')}
+                            className="w-full"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Ver Factura
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -334,6 +345,7 @@ export function InvoicesTable({ facturas, detalles, getDetallesByFacturaId }: In
                   <th className="text-left p-3 font-medium">Condición de Pago</th>
                   <th className="text-left p-3 font-medium">Fecha Pago</th>
                   <th className="text-left p-3 font-medium">Observación</th>
+                  <th className="text-left p-3 font-medium">Link Factura</th>
                   <th className="text-left p-3 font-medium">Detalle</th>
                 </tr>
               </thead>
@@ -365,6 +377,21 @@ export function InvoicesTable({ facturas, detalles, getDetallesByFacturaId }: In
                       </td>
                       <td className="p-3 max-w-xs truncate" title={factura.observacion}>
                         {factura.observacion || "-"}
+                      </td>
+                      <td className="p-3">
+                        {factura.linkFactura ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(factura.linkFactura, '_blank', 'noopener,noreferrer')}
+                            className="h-8"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Ver
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
                       </td>
                       <td className="p-3">
                         <Button

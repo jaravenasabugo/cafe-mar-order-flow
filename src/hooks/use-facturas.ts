@@ -81,6 +81,7 @@ export function useFacturas(): UseFacturasResult {
           const formaPago = String((row["Forma de pago"] ?? row["formaPago"] ?? row["Forma de Pago"] ?? "")).trim();
           const condicionPago = String((row["Condición Pago"] ?? row["condicionPago"] ?? row["Condicion Pago"] ?? "")).trim();
           const observacion = String((row["Observacion"] ?? row["observacion"] ?? row["Observación"] ?? "")).trim();
+          const linkFactura = String((row["Link Factura"] ?? row["linkFactura"] ?? "")).trim();
 
           // Parsear números
           const montoNetoRaw = row["Monto Neto"] ?? row["montoNeto"] ?? 0;
@@ -130,6 +131,7 @@ export function useFacturas(): UseFacturasResult {
             iva: Number.isFinite(iva) ? iva : 0,
             montoTotal: Number.isFinite(montoTotal) ? montoTotal : 0,
             observacion,
+            linkFactura: linkFactura || undefined,
           });
         }
 

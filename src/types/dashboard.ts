@@ -48,6 +48,7 @@ export interface FacturaDashboard {
   iva: number;
   montoTotal: number;
   observacion: string;
+  linkFactura?: string; // Link a la factura
 }
 
 export interface DetalleFactura {
