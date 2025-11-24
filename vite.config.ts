@@ -14,6 +14,26 @@ export default defineConfig(({ mode }) => {
       host: "::",
       port: 8080,
       proxy: {
+        '/api/get-sheet-data': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+          secure: false,
+          configure: (proxy, _options) => {
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              // Mantener el método y headers originales
+              if (req.method === 'POST' || req.method === 'OPTIONS') {
+                const contentType = req.headers['content-type'];
+                if (contentType) {
+                  proxyReq.setHeader('Content-Type', contentType);
+                }
+              }
+            });
+            proxy.on('error', (err, _req, _res) => {
+              console.error('Proxy error para /api/get-sheet-data:', err);
+              console.error('💡 Asegúrate de que el servidor esté ejecutándose: npm run dev:serverless');
+            });
+          },
+        },
         '/api/send-order': {
           target: webhookUrl,
           changeOrigin: true,

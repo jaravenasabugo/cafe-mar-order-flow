@@ -1,11 +1,13 @@
-// Utilidades para leer Google Sheets publicados (sin credenciales) usando el endpoint GViz
-// Requiere que el Google Sheet sea accesible públicamente ("Cualquiera con el enlace")
+// Utilidades para leer Google Sheets usando la API oficial de Google Sheets
+// con autenticación mediante cuenta de servicio (recomendado)
+// También soporta el método legacy GViz para hojas públicas
 
 export interface GoogleSheetRow {
   [key: string]: string | number | Date | null;
 }
 
 // Convierte el JSON "GViz" a un arreglo de objetos basado en la primera fila como cabeceras
+// (Método legacy - solo se usa si la API oficial no está disponible)
 function gvizToRows(gvizText: string): GoogleSheetRow[] {
   // La respuesta de GViz viene como: google.visualization.Query.setResponse({...})
   const jsonText = gvizText
@@ -61,7 +63,85 @@ function gvizToRows(gvizText: string): GoogleSheetRow[] {
   });
 }
 
+/**
+ * Obtiene filas de una hoja de Google Sheets usando la API oficial con cuenta de servicio
+ * @param sheetId - ID de la hoja de cálculo de Google Sheets
+ * @param sheetName - Nombre de la hoja dentro del documento
+ * @returns Array de objetos donde cada objeto representa una fila con las columnas como propiedades
+ */
 export async function fetchSheetRows(sheetId: string, sheetName: string): Promise<GoogleSheetRow[]> {
+  // Intentar usar la API oficial primero (si está configurada)
+  const useApiEndpoint = import.meta.env.VITE_USE_GOOGLE_SHEETS_API !== 'false';
+  
+  if (useApiEndpoint) {
+    try {
+      // Determinar la URL base de la API
+      // En desarrollo, usar el proxy de Vite o la URL completa
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+      const apiUrl = `${apiBaseUrl}/get-sheet-data`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sheetId, sheetName }),
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        // Intentar obtener el mensaje de error del servidor
+        let errorMessage = `Error ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+          console.error('Error del servidor:', errorData);
+        } catch {
+          // Si no se puede parsear como JSON, usar el texto
+          const errorText = await response.text();
+          console.error('Error del servidor (texto):', errorText);
+        }
+        
+        // Si falla la API oficial, intentar con el método legacy si está permitido
+        if (import.meta.env.VITE_FALLBACK_TO_GVIZ === 'true') {
+          console.warn('La API oficial falló, usando método legacy GViz');
+          return fetchSheetRowsLegacy(sheetId, sheetName);
+        }
+        
+        // Si es un error 500, puede ser que el servidor no esté ejecutándose
+        if (response.status === 500) {
+          throw new Error(`${errorMessage}\n💡 Asegúrate de que el servidor esté ejecutándose: npm run dev:serverless`);
+        }
+        
+        throw new Error(`Error al leer Google Sheet: ${errorMessage}`);
+      }
+
+      const data = await response.json();
+      return data.rows || [];
+    } catch (error) {
+      // Si es un error de conexión, puede ser que el servidor no esté ejecutándose
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        throw new Error(`No se pudo conectar al servidor. Asegúrate de que esté ejecutándose: npm run dev:serverless\nError original: ${error.message}`);
+      }
+      
+      // Si hay un error y está permitido el fallback, usar método legacy
+      if (import.meta.env.VITE_FALLBACK_TO_GVIZ === 'true') {
+        console.warn('Error con la API oficial, usando método legacy GViz:', error);
+        return fetchSheetRowsLegacy(sheetId, sheetName);
+      }
+      throw error;
+    }
+  } else {
+    // Usar método legacy directamente
+    return fetchSheetRowsLegacy(sheetId, sheetName);
+  }
+}
+
+/**
+ * Método legacy: Obtiene filas usando el endpoint GViz público
+ * Requiere que el Google Sheet sea accesible públicamente ("Cualquiera con el enlace")
+ */
+async function fetchSheetRowsLegacy(sheetId: string, sheetName: string): Promise<GoogleSheetRow[]> {
   const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
