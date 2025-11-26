@@ -91,12 +91,24 @@ export default async function handler(req, res) {
         // Intentar convertir números y fechas
         if (value === undefined || value === null || value === '') {
           obj[header] = null;
-        } else if (!isNaN(value) && value !== '') {
-          // Es un número
-          obj[header] = Number(value);
+        } else if (typeof value === 'number') {
+          // Ya es un número, usarlo directamente
+          obj[header] = value;
         } else {
-          // Es texto
-          obj[header] = String(value).trim();
+          // Es texto, intentar convertir a número si es posible
+          const valueStr = String(value).trim();
+          // Verificar si parece un número (puede tener formato con puntos/comas)
+          const numericPattern = /^-?\d+([.,]\d+)*$/;
+          if (numericPattern.test(valueStr)) {
+            // Es un número con formato, parsearlo correctamente
+            // Remover separadores de miles (puntos) y convertir coma a punto para decimales
+            let cleaned = valueStr.replace(/\./g, "").replace(",", ".");
+            const numValue = parseFloat(cleaned);
+            obj[header] = !isNaN(numValue) ? numValue : valueStr;
+          } else {
+            // Es texto normal
+            obj[header] = valueStr;
+          }
         }
       });
       return obj;

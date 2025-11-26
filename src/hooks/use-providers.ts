@@ -88,18 +88,56 @@ export function useProviders(): UseProvidersResult {
 
           const precioRaw = row["Precio unitario (CLP)"] ?? row["precio_unitario"];
           let precio_unitario: number;
-          if (typeof precioRaw === "number") {
+          
+          // Si ya es un número, usarlo directamente
+          if (typeof precioRaw === "number" && !isNaN(precioRaw)) {
             precio_unitario = precioRaw;
+          } else if (precioRaw === null || precioRaw === undefined || precioRaw === "") {
+            precio_unitario = 0;
           } else {
-            // Convertir string a número, manejando separadores de miles y decimales
-            const precioStr = String(precioRaw || "0").trim();
-            // Si tiene punto y coma, el punto es separador de miles y la coma es decimal (formato europeo)
-            // Si solo tiene punto, podría ser separador de miles o decimal
-            // Si solo tiene coma, podría ser separador de miles o decimal
-            // Para Chile: punto es separador de miles, coma es decimal
-            // Remover separadores de miles (puntos) y convertir coma a punto para parseFloat
-            const cleaned = precioStr.replace(/\./g, "").replace(",", ".");
-            precio_unitario = parseFloat(cleaned) || 0;
+            // Convertir string a número
+            const precioStr = String(precioRaw).trim();
+            
+            if (precioStr === "" || precioStr === "-") {
+              precio_unitario = 0;
+            } else {
+              // Remover caracteres no numéricos excepto punto, coma y signo negativo
+              let cleaned = precioStr.replace(/[^0-9.,-]/g, "");
+              
+              // Detectar si tiene separadores de miles
+              // En formato chileno: punto es separador de miles, coma es decimal
+              // Ejemplos: "5.500" (miles), "5,5" (decimal), "5.500,50" (miles y decimal)
+              
+              const tienePunto = cleaned.includes(".");
+              const tieneComa = cleaned.includes(",");
+              
+              if (tienePunto && tieneComa) {
+                // Tiene ambos: "5.500,50" -> punto es miles, coma es decimal
+                cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+              } else if (tienePunto && !tieneComa) {
+                // Solo punto: verificar si es miles o decimal
+                const partes = cleaned.split(".");
+                if (partes.length === 2 && partes[1].length <= 2) {
+                  // Probablemente es decimal: "5.5" o "5.50"
+                  // Mantener como está
+                } else {
+                  // Probablemente es separador de miles: "5.500" o "1.234.567"
+                  cleaned = cleaned.replace(/\./g, "");
+                }
+              } else if (!tienePunto && tieneComa) {
+                // Solo coma: verificar si es miles o decimal
+                const partes = cleaned.split(",");
+                if (partes.length === 2 && partes[1].length <= 2) {
+                  // Probablemente es decimal: "5,5" -> convertir a "5.5"
+                  cleaned = cleaned.replace(",", ".");
+                } else {
+                  // Probablemente es separador de miles: "5,500" -> quitar comas
+                  cleaned = cleaned.replace(/,/g, "");
+                }
+              }
+              
+              precio_unitario = parseFloat(cleaned) || 0;
+            }
           }
 
           const categoria = String((row["Categoria"] ?? row["categoria"] ?? "")).trim();
