@@ -25,7 +25,7 @@ export const OrderSummary = ({ products, total }: OrderSummaryProps) => {
               {product.nombre} × {product.cantidad}
             </span>
             <span className="font-medium text-foreground">
-              ${product.subtotal.toLocaleString('es-CL')}
+              ${product.subtotal.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>
           </div>
         ))}
@@ -36,7 +36,7 @@ export const OrderSummary = ({ products, total }: OrderSummaryProps) => {
       <div className="flex justify-between items-center">
         <span className="text-lg font-serif text-foreground">Total</span>
         <span className="text-2xl font-bold text-primary">
-          ${total.toLocaleString('es-CL')}
+          ${total.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
         </span>
       </div>
     </Card>

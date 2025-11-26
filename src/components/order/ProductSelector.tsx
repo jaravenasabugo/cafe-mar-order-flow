@@ -12,9 +12,10 @@ interface ProductSelectorProps {
   onQuantityChange: (productName: string, quantity: number) => void;
   onSelectAll?: () => void;
   onDeselectAll?: () => void;
+  providerName: string;
 }
 
-export const ProductSelector = ({ products, quantities, onQuantityChange, onSelectAll, onDeselectAll }: ProductSelectorProps) => {
+export const ProductSelector = ({ products, quantities, onQuantityChange, onSelectAll, onDeselectAll, providerName }: ProductSelectorProps) => {
   const [search, setSearch] = useState("");
   if (products.length === 0) return null;
 
@@ -75,6 +76,7 @@ export const ProductSelector = ({ products, quantities, onQuantityChange, onSele
               product={product}
               quantity={quantities[product.nombre] || 0}
               onQuantityChange={(qty) => onQuantityChange(product.nombre, qty)}
+              providerName={providerName}
             />
           ))
         )}

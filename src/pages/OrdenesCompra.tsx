@@ -13,6 +13,7 @@ import { OrderSummary } from "@/components/order/OrderSummary";
 import { useProviders } from "@/hooks/use-providers";
 import { useEncargados } from "@/hooks/use-encargados";
 import { Order, SelectedProduct } from "@/types/order";
+import { calculateSubtotal } from "@/lib/pricing";
 
 const OrdenesCompra = () => {
   const { toast } = useToast();
@@ -53,12 +54,14 @@ const OrdenesCompra = () => {
   const selectedProducts: SelectedProduct[] = useMemo(() => {
     if (!selectedProvider) return [];
     
+    const providerName = selectedProvider.nombre;
+    
     return selectedProvider.productos
       .filter(product => quantities[product.nombre] > 0)
       .map(product => ({
         ...product,
         cantidad: quantities[product.nombre],
-        subtotal: quantities[product.nombre] * product.precio_unitario,
+        subtotal: calculateSubtotal(product, quantities[product.nombre], providerName),
       }));
   }, [selectedProvider, quantities]);
 
@@ -251,6 +254,7 @@ const OrdenesCompra = () => {
                 onQuantityChange={handleQuantityChange}
                 onSelectAll={handleSelectAll}
                 onDeselectAll={handleDeselectAll}
+                providerName={selectedProvider.nombre}
               />
             </>
           )}

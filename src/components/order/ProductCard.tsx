@@ -4,14 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Product } from "@/types/order";
+import { calculateUnitPrice, calculateSubtotal, hasDiscountApplied } from "@/lib/pricing";
 
 interface ProductCardProps {
   product: Product;
   quantity: number;
   onQuantityChange: (quantity: number) => void;
+  providerName: string;
 }
 
-export const ProductCard = ({ product, quantity, onQuantityChange }: ProductCardProps) => {
+export const ProductCard = ({ product, quantity, onQuantityChange, providerName }: ProductCardProps) => {
   const [inputValue, setInputValue] = useState<string>(quantity.toString());
 
   // Sincronizar el input cuando cambia la cantidad externamente (por ejemplo, desde botones)
@@ -58,7 +60,15 @@ export const ProductCard = ({ product, quantity, onQuantityChange }: ProductCard
     }
   };
 
-  const subtotal = quantity * product.precio_unitario;
+  // Calcular precio unitario y subtotal con descuentos aplicados
+  const unitPrice = calculateUnitPrice(product, quantity, providerName);
+  const subtotal = calculateSubtotal(product, quantity, providerName);
+  
+  // Verificar si realmente se aplicó un descuento (solo para cantidad >= 9 en CCU Latas)
+  const discountApplied = hasDiscountApplied(product, quantity, providerName);
+  
+  // Mostrar precio original tachado solo si hay descuento aplicado
+  const showOriginalPrice = discountApplied;
 
   return (
     <Card 
@@ -69,12 +79,27 @@ export const ProductCard = ({ product, quantity, onQuantityChange }: ProductCard
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex-1">
           <h4 className="font-medium text-foreground">{product.nombre}</h4>
-          <p className="text-sm text-muted-foreground">
-            ${product.precio_unitario.toLocaleString('es-CL')} / {product.unidad}
-          </p>
+          <div className="text-sm text-muted-foreground">
+            {showOriginalPrice ? (
+              <div>
+                <span className="line-through opacity-60">
+                  ${product.precio_unitario.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+                <span className="ml-2 text-primary font-semibold">
+                  ${unitPrice.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+                <span className="ml-1">/ {product.unidad}</span>
+                <span className="ml-2 text-xs text-primary font-medium">
+                  (Descuento aplicado)
+                </span>
+              </div>
+            ) : (
+              <span>${unitPrice.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} / {product.unidad}</span>
+            )}
+          </div>
           {quantity > 0 && (
             <p className="text-sm font-semibold text-primary mt-1">
-              Subtotal: ${subtotal.toLocaleString('es-CL')}
+              Subtotal: ${subtotal.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </p>
           )}
         </div>

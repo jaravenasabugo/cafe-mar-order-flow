@@ -87,7 +87,20 @@ export function useProviders(): UseProvidersResult {
           const unidad = Number.isFinite(unidadesPorCaja) && unidadesPorCaja > 0 ? `caja x ${unidadesPorCaja}` : "unidad";
 
           const precioRaw = row["Precio unitario (CLP)"] ?? row["precio_unitario"];
-          const precio_unitario = typeof precioRaw === "number" ? precioRaw : Number(String(precioRaw || "0").replace(/[^0-9.,-]/g, "").replace(",", "."));
+          let precio_unitario: number;
+          if (typeof precioRaw === "number") {
+            precio_unitario = precioRaw;
+          } else {
+            // Convertir string a número, manejando separadores de miles y decimales
+            const precioStr = String(precioRaw || "0").trim();
+            // Si tiene punto y coma, el punto es separador de miles y la coma es decimal (formato europeo)
+            // Si solo tiene punto, podría ser separador de miles o decimal
+            // Si solo tiene coma, podría ser separador de miles o decimal
+            // Para Chile: punto es separador de miles, coma es decimal
+            // Remover separadores de miles (puntos) y convertir coma a punto para parseFloat
+            const cleaned = precioStr.replace(/\./g, "").replace(",", ".");
+            precio_unitario = parseFloat(cleaned) || 0;
+          }
 
           const categoria = String((row["Categoria"] ?? row["categoria"] ?? "")).trim();
 
