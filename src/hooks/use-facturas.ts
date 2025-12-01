@@ -83,12 +83,62 @@ export function useFacturas(): UseFacturasResult {
           const observacion = String((row["Observacion"] ?? row["observacion"] ?? row["Observación"] ?? "")).trim();
           const linkFactura = String((row["Link Factura"] ?? row["linkFactura"] ?? "")).trim();
 
+          // Función auxiliar para parsear números con formato
+          const parseNumber = (value: any): number => {
+            if (typeof value === "number" && !isNaN(value)) {
+              return value;
+            }
+            if (value === null || value === undefined || value === "") {
+              return 0;
+            }
+            
+            const valueStr = String(value).trim();
+            if (valueStr === "" || valueStr === "-") {
+              return 0;
+            }
+            
+            // Remover caracteres no numéricos excepto punto, coma y signo negativo
+            let cleaned = valueStr.replace(/[^0-9.,-]/g, "");
+            
+            // Detectar formato: punto es separador de miles, coma es decimal (formato chileno)
+            const tienePunto = cleaned.includes(".");
+            const tieneComa = cleaned.includes(",");
+            
+            if (tienePunto && tieneComa) {
+              // Tiene ambos: "5.500,50" -> punto es miles, coma es decimal
+              cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+            } else if (tienePunto && !tieneComa) {
+              // Solo punto: verificar si es miles o decimal
+              const partes = cleaned.split(".");
+              if (partes.length === 2 && partes[1].length <= 2) {
+                // Probablemente es decimal: "5.5" o "5.50"
+                // Mantener como está
+              } else {
+                // Probablemente es separador de miles: "5.500" o "1.234.567"
+                cleaned = cleaned.replace(/\./g, "");
+              }
+            } else if (!tienePunto && tieneComa) {
+              // Solo coma: verificar si es miles o decimal
+              const partes = cleaned.split(",");
+              if (partes.length === 2 && partes[1].length <= 2) {
+                // Probablemente es decimal: "5,5" -> convertir a "5.5"
+                cleaned = cleaned.replace(",", ".");
+              } else {
+                // Probablemente es separador de miles: "5,500" -> quitar comas
+                cleaned = cleaned.replace(/,/g, "");
+              }
+            }
+            
+            const parsed = parseFloat(cleaned);
+            return Number.isFinite(parsed) && !isNaN(parsed) ? parsed : 0;
+          };
+
           // Parsear números
           const montoNetoRaw = row["Monto Neto"] ?? row["montoNeto"] ?? 0;
-          const montoNeto = typeof montoNetoRaw === "number" ? montoNetoRaw : Number(String(montoNetoRaw || "0").replace(/[^0-9.,-]/g, "").replace(",", "."));
+          const montoNeto = parseNumber(montoNetoRaw);
 
           const ivaRaw = row["IVA"] ?? row["iva"] ?? 0;
-          const iva = typeof ivaRaw === "number" ? ivaRaw : Number(String(ivaRaw || "0").replace(/[^0-9.,-]/g, "").replace(",", "."));
+          const iva = parseNumber(ivaRaw);
 
           const montoTotalRaw = row["Monto Total"] ?? row["montoTotal"] ?? 0;
           let montoTotal = 0;
